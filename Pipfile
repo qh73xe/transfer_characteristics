@@ -3,17 +3,19 @@ name = "pypi"
 url = "https://pypi.org/simple"
 verify_ssl = true
 
+[packages]
+scipy = "*"
+ipython = "*"
+matplotlib = "*"
+pyside2 = "*"
+pyqtgraph = {git = "https://github.com/pyqtgraph/pyqtgraph"}
+
 [dev-packages]
 ipython = "*"
 flake8 = "*"
-yapf = "*"
 jedi = "*"
+yapf = "*"
 pynvim = "*"
-
-[packages]
-scipy = "*"
-pyqtgraph = "*"
-PySide2 = "*"
 
 [requires]
 python_version = "3.7"
