@@ -9,6 +9,9 @@ ipython = "*"
 matplotlib = "*"
 pyside2 = "*"
 pyqtgraph = {git = "https://github.com/pyqtgraph/pyqtgraph"}
+pyaudio = "*"
+sounddevice = "*"
+soundfile = "*"
 
 [dev-packages]
 ipython = "*"

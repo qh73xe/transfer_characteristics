@@ -28,6 +28,7 @@ class Ui_MainWindow(object):
     gen_options = default_settings["gen_options"]
     object_datas = None
     subject_datas = None
+    recs = 0
 
     def set_duration(self, value):
         self.duration = value
@@ -43,6 +44,32 @@ class Ui_MainWindow(object):
 
     def on_recording(self):
         print("On Record fired!")
+        from signals import fft, to_dB
+        self.recs = self.recs + 1
+        if self.object_datas is not None:
+            from wave_io import playrec
+            self.subject_datas = playrec(self.object_datas, fs=self.fs)
+            print("subject_datas")
+            print("Fin Recording.")
+            if self.subject_datas is not None:
+                for i in range(self.subject_datas.ndim):
+                    data = self.subject_datas[i]
+                    freq, amp = fft(data)
+                    print(amp)
+                    self.fftGraphicsView.plot(
+                        freq,
+                        to_dB(amp),
+                        pen='r',
+                        name='res_{}: channel = {}'.format(
+                            str(self.recs), str(i)
+                        )
+                    )
+                print("Fin plot")
+        else:
+            from wave_io import rec
+            self.subject_datas = rec(self.duration, fs=self.fs)
+            freq, amp = fft(self.subject_datas)
+            self.fftGraphicsView.plot(freq, to_dB(amp))
 
     def gen_chirp(self):
         from signals import gen_chirp, fft, to_dB
@@ -55,7 +82,7 @@ class Ui_MainWindow(object):
         self.waveGraphicsView.clear()
         self.waveGraphicsView.plot(t, self.object_datas)
         self.fftGraphicsView.clear()
-        self.fftGraphicsView.plot(freq, to_dB(amp))
+        self.fftGraphicsView.plot(freq, to_dB(amp), pen='g', name='base')
 
     def gen_signal(self):
         print("Gen Signal fired!")
@@ -204,8 +231,11 @@ class Ui_MainWindow(object):
             )
         )
         self.recordingButton.setText(
-            QtWidgets.QApplication.translate("MainWindow", "...", None, -1)
+            QtWidgets.QApplication.translate(
+                "MainWindow", "Recording", None, -1
+            )
         )
+
         self.genSignalButton.setText(
             QtWidgets.QApplication.translate(
                 "MainWindow", "Gen signals...", None, -1
