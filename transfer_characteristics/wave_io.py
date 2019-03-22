@@ -46,16 +46,16 @@ def rec(duration, fs=96, channels=1, filename=None):
         return recording
 
 
-def playrec(signals, filename=None, **kwargs):
+def playrec(signals, **kwargs):
     import sounddevice as sd
-    import soundfile as sf
-
     fs = kwargs.get("fs", 96)
+    channels = kwargs.get("channels", 2)
+    blocking = kwargs.get("blocking", True)
     _fs = fs * 1000
-    recording = sd.rec(len(signals), samplerate=_fs, channels=2)
-    sd.play(signals, _fs)
-    sd.wait()
-    if filename:
-        sf.write(filename, recording, _fs)
-    else:
-        return recording
+    return sd.playrec(signals, _fs, channels=channels, blocking=blocking)
+
+
+def get_devices():
+    """音声デバイス一覧を取得します"""
+    import sounddevice as sd
+    return sd.query_devices()

@@ -13,6 +13,8 @@ import pyqtgraph as pg
 
 class Ui_MainWindow(object):
 
+    devices = []
+    device_settings = {"input_device_index": None, "output_device_index": None}
     default_settings = {
         "analytical_method": "chirp",
         "duration": 60,
@@ -29,50 +31,68 @@ class Ui_MainWindow(object):
     object_datas = None
     subject_datas = None
     recs = 0
+    cols = [
+        "g",
+        "r",
+        "y",
+    ]
+
+    def set_devices(self):
+        from wave_io import get_devices
+        self.devices = get_devices()
+
+    def set_input_device(self, value):
+        self.device_settings["input_device_index"] = value
+        self.statusbar.showMessage("Change input device !!")
+
+    def set_output_device(self, value):
+        self.device_settings["output_device_index"] = value
+        self.statusbar.showMessage("Change output device !!")
 
     def set_duration(self, value):
         self.duration = value
+        self.statusbar.showMessage("Change sound duration !!")
 
     def set_fs(self, value):
         self.fs = value
+        self.statusbar.showMessage("Change sound sampling rate !!")
 
     def set_f0(self, value):
         self.gen_options["f0"] = value
+        self.statusbar.showMessage("Change charps setting (f0) !!")
 
     def set_f1(self, value):
         self.gen_options["f1"] = value
+        self.statusbar.showMessage("Change charps setting (f1) !!")
 
     def on_recording(self):
-        print("On Record fired!")
         from signals import fft, to_dB
-        self.recs = self.recs + 1
-        if self.object_datas is not None:
-            from wave_io import playrec
-            self.subject_datas = playrec(self.object_datas, fs=self.fs)
-            print("subject_datas")
-            print("Fin Recording.")
-            if self.subject_datas is not None:
-                for i in range(self.subject_datas.ndim):
-                    data = self.subject_datas[i]
-                    freq, amp = fft(data)
-                    print(amp)
-                    self.fftGraphicsView.plot(
-                        freq,
-                        to_dB(amp),
-                        pen='r',
-                        name='res_{}: channel = {}'.format(
-                            str(self.recs), str(i)
-                        )
-                    )
-                print("Fin plot")
+        from wave_io import playrec
+        self.statusbar.showMessage("On Recording !!")
+        if self.object_datas is None:
+            self.gen_signal()
+        options = {
+            "fs": self.fs,
+        }
+        self.subject_datas = playrec(self.object_datas, **options)
+        self.statusbar.showMessage("Fin Recording !!")
+
+        if self.subject_datas is None:
+            self.statusbar.showMessage("Faild Recording")
         else:
-            from wave_io import rec
-            self.subject_datas = rec(self.duration, fs=self.fs)
-            freq, amp = fft(self.subject_datas)
-            self.fftGraphicsView.plot(freq, to_dB(amp))
+            self.statusbar.showMessage("Now Analysed Data!")
+            for i in range(self.subject_datas.ndim):
+                data = self.subject_datas[:, i]
+                freq, amp = fft(data)
+                self.fftGraphicsView.plot(
+                    freq, to_dB(amp), pen=self.cols[i + 1]
+                )
+        self.statusbar.showMessage("Fin Plotting !!")
 
     def gen_chirp(self):
+        """チャープ音を生成します."""
         from signals import gen_chirp, fft, to_dB
+        self.statusbar.showMessage("Gen Charp Signal !!")
         _f0 = self.gen_options.get("f0")
         _f1 = self.gen_options.get("f1") * 1000
         t, self.object_datas = gen_chirp(
@@ -82,45 +102,77 @@ class Ui_MainWindow(object):
         self.waveGraphicsView.clear()
         self.waveGraphicsView.plot(t, self.object_datas)
         self.fftGraphicsView.clear()
-        self.fftGraphicsView.plot(freq, to_dB(amp), pen='g', name='base')
+        self.fftGraphicsView.plot(
+            freq, to_dB(amp), pen=self.cols[0], name='base'
+        )
+        lr = pg.LinearRegionItem([20, 20000])
+        lr.setZValue(-10)
+        self.fftGraphicsView.addItem(lr)
+        self.fftGraphicsView.showGrid(x=True, y=True)
 
     def gen_signal(self):
-        print("Gen Signal fired!")
         if self.analytical_method == "chirp":
             self.gen_chirp()
 
-    def setupUi(self, MainWindow):
-        MainWindow.setObjectName("Transfer Characteristics")
-        MainWindow.resize(917, 626)
-
-        # --------------------------------------------------------------------
-        # メニューバー
-        # --------------------------------------------------------------------
+    def setupMenu(self, MainWindow):
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
         self.menubar = QtWidgets.QMenuBar(MainWindow)
         self.menubar.setGeometry(QtCore.QRect(0, 0, 917, 31))
         self.menubar.setObjectName("menubar")
+
         self.menu = QtWidgets.QMenu(self.menubar)
         self.menu.setObjectName("menu")
+        self.menu.setTitle(
+            QtWidgets.QApplication.translate("MainWindow", "File", None, -1)
+        )
+
         self.menuNew = QtWidgets.QMenu(self.menu)
         self.menuNew.setObjectName("menuNew")
+        self.menuNew.setTitle(
+            QtWidgets.QApplication.translate("MainWindow", "New...", None, -1)
+        )
+
         self.menuSettings = QtWidgets.QMenu(self.menubar)
         self.menuSettings.setObjectName("menuSettings")
+        self.menuSettings.setTitle(
+            QtWidgets.QApplication.translate(
+                "MainWindow", "Settings", None, -1
+            )
+        )
         self.menuHelp = QtWidgets.QMenu(self.menubar)
         self.menuHelp.setObjectName("menuHelp")
+        self.menuHelp.setTitle(
+            QtWidgets.QApplication.translate("MainWindow", "Help", None, -1)
+        )
         MainWindow.setMenuBar(self.menubar)
-        self.statusbar = QtWidgets.QStatusBar(MainWindow)
-        self.statusbar.setObjectName("statusbar")
-        MainWindow.setStatusBar(self.statusbar)
+
         self.actionCharp = QtWidgets.QAction(MainWindow)
         self.actionCharp.setObjectName("actionCharp")
+        self.actionCharp.setText(
+            QtWidgets.QApplication.translate("MainWindow", "Charp", None, -1)
+        )
         self.actionRecord = QtWidgets.QAction(MainWindow)
         self.actionRecord.setObjectName("actionRecord")
+        self.actionRecord.setText(
+            QtWidgets.QApplication.translate("MainWindow", "Record", None, -1)
+        )
         self.actionPreference = QtWidgets.QAction(MainWindow)
         self.actionPreference.setObjectName("actionPreference")
+        self.actionPreference.setText(
+            QtWidgets.QApplication.translate(
+                "MainWindow", "Preference ...", None, -1
+            )
+        )
+
         self.actionAbout = QtWidgets.QAction(MainWindow)
         self.actionAbout.setObjectName("actionAbout")
+        self.actionAbout.setText(
+            QtWidgets.QApplication.translate(
+                "MainWindow", "About ...", None, -1
+            )
+        )
+
         self.menuNew.addAction(self.actionCharp)
         self.menu.addAction(self.menuNew.menuAction())
         self.menu.addSeparator()
@@ -131,6 +183,7 @@ class Ui_MainWindow(object):
         self.menubar.addAction(self.menuSettings.menuAction())
         self.menubar.addAction(self.menuHelp.menuAction())
 
+    def setupMain(self, MainWindow):
         # --------------------------------------------------------------------
         # トップボタンバー
         # --------------------------------------------------------------------
@@ -143,6 +196,11 @@ class Ui_MainWindow(object):
         self.recordingButton = QtWidgets.QToolButton(self.centralwidget)
         self.recordingButton.setObjectName("recordingButton")
         self.recordingButton.clicked.connect(self.on_recording)
+        self.recordingButton.setText(
+            QtWidgets.QApplication.translate(
+                "MainWindow", "Recording", None, -1
+            )
+        )
         self.horizontalLayout.addWidget(self.recordingButton)
 
         # スペーサー
@@ -192,6 +250,11 @@ class Ui_MainWindow(object):
         self.genSignalButton = QtWidgets.QPushButton(self.centralwidget)
         self.genSignalButton.setObjectName("genSignalButton")
         self.genSignalButton.clicked.connect(self.gen_signal)
+        self.genSignalButton.setText(
+            QtWidgets.QApplication.translate(
+                "MainWindow", "Gen signals...", None, -1
+            )
+        )
         self.horizontalLayout.addWidget(self.genSignalButton)
 
         # 画像領域
@@ -211,12 +274,18 @@ class Ui_MainWindow(object):
         self.fftGraphicsView = pg.PlotWidget(self.centralwidget, title="SPL")
         self.fftGraphicsView.setObjectName("fftGraphicsView")
         self.verticalLayout.addWidget(self.fftGraphicsView)
-
-        # 評価領域
-        self.label = QtWidgets.QLabel(self.centralwidget)
-        self.label.setObjectName("label")
-        self.verticalLayout.addWidget(self.label)
         self.verticalLayout_2.addLayout(self.verticalLayout)
+
+    def setupUi(self, MainWindow):
+        MainWindow.setObjectName("Transfer Characteristics")
+        MainWindow.resize(917, 626)
+
+        self.setupMenu(MainWindow)
+        self.setupMain(MainWindow)
+
+        self.statusbar = QtWidgets.QStatusBar(MainWindow)
+        self.statusbar.setObjectName("statusbar")
+        MainWindow.setStatusBar(self.statusbar)
 
         # 種々初期化
         # -------------------------------------
@@ -230,17 +299,7 @@ class Ui_MainWindow(object):
                 "MainWindow", "MainWindow", None, -1
             )
         )
-        self.recordingButton.setText(
-            QtWidgets.QApplication.translate(
-                "MainWindow", "Recording", None, -1
-            )
-        )
 
-        self.genSignalButton.setText(
-            QtWidgets.QApplication.translate(
-                "MainWindow", "Gen signals...", None, -1
-            )
-        )
         self.durationLabel.setText(
             QtWidgets.QApplication.translate("MainWindow", "Time:", None, -1)
         )
@@ -249,39 +308,4 @@ class Ui_MainWindow(object):
         )
         self.f1Label.setText(
             QtWidgets.QApplication.translate("MainWindow", "-", None, -1)
-        )
-        self.label.setText(
-            QtWidgets.QApplication.translate(
-                "MainWindow", "評価: xxxxx", None, -1
-            )
-        )
-        self.menu.setTitle(
-            QtWidgets.QApplication.translate("MainWindow", "File", None, -1)
-        )
-        self.menuNew.setTitle(
-            QtWidgets.QApplication.translate("MainWindow", "New...", None, -1)
-        )
-        self.menuSettings.setTitle(
-            QtWidgets.QApplication.translate(
-                "MainWindow", "Settings", None, -1
-            )
-        )
-        self.menuHelp.setTitle(
-            QtWidgets.QApplication.translate("MainWindow", "Help", None, -1)
-        )
-        self.actionCharp.setText(
-            QtWidgets.QApplication.translate("MainWindow", "Charp", None, -1)
-        )
-        self.actionRecord.setText(
-            QtWidgets.QApplication.translate("MainWindow", "Record", None, -1)
-        )
-        self.actionPreference.setText(
-            QtWidgets.QApplication.translate(
-                "MainWindow", "Preference ...", None, -1
-            )
-        )
-        self.actionAbout.setText(
-            QtWidgets.QApplication.translate(
-                "MainWindow", "About ...", None, -1
-            )
         )
