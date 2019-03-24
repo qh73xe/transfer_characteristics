@@ -114,6 +114,18 @@ class Ui_MainWindow(object):
         if self.analytical_method == "chirp":
             self.gen_chirp()
 
+    def save_plot(self):
+        from os import path
+        from PySide2.QtWidgets import QFileDialog
+        (fileName, selectedFilter) = QFileDialog.getSaveFileName(
+            None, "Open Image", path.expanduser("~"),
+            "Image Files (*.png *.jpg *.bmp)"
+        )
+        if fileName:
+            from pyqtgraph.exporters import ImageExporter
+            exporter = ImageExporter(self.fftGraphicsView.plotItem)
+            exporter.export(fileName)
+
     def setupMenu(self, MainWindow):
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
@@ -202,6 +214,17 @@ class Ui_MainWindow(object):
             )
         )
         self.horizontalLayout.addWidget(self.recordingButton)
+
+        # save ボタン
+        self.saveImageButton = QtWidgets.QToolButton(self.centralwidget)
+        self.saveImageButton.setObjectName("saveImageButton")
+        self.saveImageButton.clicked.connect(self.save_plot)
+        self.saveImageButton.setText(
+            QtWidgets.QApplication.translate(
+                "MainWindow", "Save Image", None, -1
+            )
+        )
+        self.horizontalLayout.addWidget(self.saveImageButton)
 
         # スペーサー
         spacerItem = QtWidgets.QSpacerItem(
