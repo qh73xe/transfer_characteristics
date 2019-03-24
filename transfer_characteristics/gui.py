@@ -7,8 +7,11 @@
 つまり, ./transfer_characteristics.ui を利用しても，
 これと同様の GUI は作成されないものと思ってください．
 """
-from PySide2 import QtCore, QtWidgets
+from os import path
+from PySide2 import QtCore, QtWidgets, QtGui
 import pyqtgraph as pg
+
+ICONDIR = path.join(path.dirname(path.abspath(__file__)), "icons")
 
 
 class Ui_MainWindow(object):
@@ -115,7 +118,6 @@ class Ui_MainWindow(object):
             self.gen_chirp()
 
     def save_plot(self):
-        from os import path
         from PySide2.QtWidgets import QFileDialog
         (fileName, selectedFilter) = QFileDialog.getSaveFileName(
             None, "Open Image", path.expanduser("~"),
@@ -205,25 +207,34 @@ class Ui_MainWindow(object):
         self.horizontalLayout.setObjectName("horizontalLayout")
 
         # 収録ボタン
+        record_icon = QtGui.QIcon(
+            path.join(
+                ICONDIR,
+                "baseline-fiber_smart_record-24px.svg",
+            )
+        )
         self.recordingButton = QtWidgets.QToolButton(self.centralwidget)
         self.recordingButton.setObjectName("recordingButton")
         self.recordingButton.clicked.connect(self.on_recording)
-        self.recordingButton.setText(
-            QtWidgets.QApplication.translate(
-                "MainWindow", "Recording", None, -1
-            )
-        )
+        self.recordingButton.setIcon(record_icon)
+        # self.recordingButton.setText(
+        #     QtWidgets.QApplication.translate(
+        #         "MainWindow", "Recording", None, -1
+        #     )
+        # )
         self.horizontalLayout.addWidget(self.recordingButton)
 
         # save ボタン
+        save_icon = QtGui.QIcon(
+            path.join(
+                ICONDIR,
+                "baseline-save-24px.svg",
+            )
+        )
         self.saveImageButton = QtWidgets.QToolButton(self.centralwidget)
         self.saveImageButton.setObjectName("saveImageButton")
         self.saveImageButton.clicked.connect(self.save_plot)
-        self.saveImageButton.setText(
-            QtWidgets.QApplication.translate(
-                "MainWindow", "Save Image", None, -1
-            )
-        )
+        self.saveImageButton.setIcon(save_icon)
         self.horizontalLayout.addWidget(self.saveImageButton)
 
         # スペーサー
